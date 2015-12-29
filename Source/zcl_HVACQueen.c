@@ -73,12 +73,16 @@
 /* HAL */
 #include "hal_lcd.h"
 #include "hal_led.h"
+#include "hal_uart.h"
 
 #if defined (OTA_CLIENT) && (OTA_CLIENT == TRUE)
 #include "zcl_ota.h"
 #include "hal_ota.h"
 #endif
 
+/* MT */
+#include "MT_UART.h"
+#include "MT.h"
 
 /*********************************************************************
  * MACROS
@@ -166,6 +170,10 @@ static void zclHVACQueen_IdentifyCB( zclIdentify_t *pCmd );
 static void zclHVACQueen_IdentifyQueryRspCB(  zclIdentifyQueryRsp_t *pRsp );
 static void zclHVACQueen_ProcessIdentifyTimeChange( void );
 
+#ifdef HAL_UART
+static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg);
+#endif
+
 // Functions to process ZCL Foundation incoming Command/Response messages
 static void zclHVACQueen_ProcessIncomingMsg( zclIncomingMsg_t *msg );
 #ifdef ZCL_READ
@@ -184,6 +192,7 @@ static uint8 zclHVACQueen_ProcessInDiscAttrsExtRspCmd( zclIncomingMsg_t *pInMsg 
 #if defined (OTA_CLIENT) && (OTA_CLIENT == TRUE)
 static void zclHVACQueen_ProcessOTAMsgs( zclOTA_CallbackMsg_t* pMsg );
 #endif
+
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -265,15 +274,16 @@ void zclHVACQueen_Init( byte task_id )
   // Register the Application to receive the unprocessed Foundation command/response messages
   zcl_registerForMsg( zclHVACQueen_TaskID );
 
+  // Initialize UART
+  MT_UartInit ();
+  MT_UartRegisterTaskID (zclHVACQueen_TaskID);
+    
   // Register for a test endpoint
   afRegister( &HVACQueen_TestEp );
 
   ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp );
   ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp );
-
-#ifdef LCD_SUPPORTED
-  HalLcdWriteString ( (char *)sDeviceName, HAL_LCD_LINE_3 );
-#endif
+  
 
 #if defined (OTA_CLIENT) && (OTA_CLIENT == TRUE)
   // Register for callback events from the ZCL OTA
@@ -307,7 +317,10 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
           zclHVACQueen_ProcessIncomingMsg( (zclIncomingMsg_t *)MSGpkt );
           break;
 
-        
+        case CMD_SERIAL_MSG:
+          // UART data, uart handler
+          HVACQueen_HandleUart ((mtOSALSerialData_t *)MSGpkt);
+          
         /*case KEY_CHANGE:
           zclHVACQueen_HandleKeys( ((keyChange_t *)MSGpkt)->state, ((keyChange_t *)MSGpkt)->keys );
           break;*/
@@ -356,6 +369,31 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
   // Discard unknown events
   return 0;
 }
+
+/*********************************************************************
+ * @fn      zclHVACQueen_HandleKeys
+ *
+ * @brief   Handles all key events for this device.
+ *
+ * @param   shift - true if in shift/alt.
+ * @param   keys - bit field for key events. Valid entries:
+ *                 HAL_KEY_SW_5
+ *                 HAL_KEY_SW_4
+ *                 HAL_KEY_SW_2
+ *                 HAL_KEY_SW_1
+ *
+ * @return  none
+ */
+static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg) 
+{
+  uint8 helloW[13] = "Hello World!";
+  
+  while (HalUARTWrite(0, helloW, 12) != 12)
+  { 
+    HalUARTPoll();
+  }
+}
+
 
 /*********************************************************************
  * @fn      zclHVACQueen_HandleKeys
@@ -606,7 +644,9 @@ static void zclHVACQueen_BasicResetCB( void )
   zgWriteStartupOptions( ZG_STARTUP_SET, 3 );   // bit set both default configuration and default network
 
   // restart device
-  MT_SysCommandProcessing( aProcessCmd );
+  //MT_SysCommandProcessing( aProcessCmd );
+  
+  /* Need reset code here!! */
 }
 
 /*********************************************************************

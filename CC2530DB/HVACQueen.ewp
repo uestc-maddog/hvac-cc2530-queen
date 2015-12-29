@@ -302,16 +302,14 @@
         </option>
         <option>
           <name>CCDefines</name>
+          <state>HAL_UART=TRUE</state>
+          <state>ZTOOL_P1</state>
+          <state>xMT_TASK</state>
           <state>SECURE=1</state>
           <state>TC_LINKKEY_JOIN</state>
           <state>NV_INIT</state>
           <state>xNV_RESTORE</state>
           <state>xHOLD_AUTO_START</state>
-          <state>ZTOOL_P1</state>
-          <state>MT_TASK</state>
-          <state>MT_APP_FUNC</state>
-          <state>MT_SYS_FUNC</state>
-          <state>MT_ZDO_FUNC</state>
           <state>xLCD_SUPPORTED=FALSE</state>
           <state>MULTICAST_ENABLED=FALSE</state>
           <state>ZCL_READ</state>
@@ -403,7 +401,7 @@
         <option>
           <name>CCAllowList</name>
           <version>1</version>
-          <state>11111</state>
+          <state>00000</state>
         </option>
         <option>
           <name>CCObjUseModuleName</name>
@@ -512,6 +510,7 @@
           <state>$PROJ_DIR$\..\..\..\..\..\Components\stack\zdo</state>
           <state>$PROJ_DIR$\..\..\..\..\..\Components\zmac</state>
           <state>$PROJ_DIR$\..\..\..\..\..\Components\zmac\f8w</state>
+          <state>D:\HVAC Project\hvac-publiclibrary</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -536,7 +535,7 @@
         </option>
         <option>
           <name>CCOptLevel</name>
-          <state>3</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCOptStrategy</name>
@@ -545,7 +544,7 @@
         </option>
         <option>
           <name>CCOptLevelSlave</name>
-          <state>3</state>
+          <state>0</state>
         </option>
         <option>
           <name>CompilerMisraRules04</name>
@@ -5768,6 +5767,9 @@
   </configuration>
   <group>
     <name>App</name>
+    <file>
+      <name>$PROJ_DIR$\..\..\..\..\..\..\hvac-publiclibrary\hvac_protocol0.h</name>
+    </file>
     <file>
       <name>$PROJ_DIR$\..\Source\OSAL_HVACQueen.c</name>
     </file>

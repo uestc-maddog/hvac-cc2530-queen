@@ -70,3 +70,4 @@ Temporary Items
 *.bat
 *.pbd
 *.dbgdt
+*.dep

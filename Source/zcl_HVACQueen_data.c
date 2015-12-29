@@ -232,7 +232,7 @@ SimpleDescriptionFormat_t zclHVACQueen_SimpleDesc =
 {
   HVACQUEEN_ENDPOINT,                  //  int Endpoint;
   ZCL_HA_PROFILE_ID,                  //  uint16 AppProfId[2];
-  ZCL_HA_DEVICEID_ON_OFF_SWITCH,      //  uint16 AppDeviceId[2];
+  ZCL_HA_DEVICEID_METER_INTERFACE,      //  uint16 AppDeviceId[2];
   HVACQUEEN_DEVICE_VERSION,            //  int   AppDevVer:4;
   HVACQUEEN_FLAGS,                     //  int   AppFlags:4;
   ZCLHVACQUEEN_MAX_INCLUSTERS,         //  byte  AppNumInClusters;
