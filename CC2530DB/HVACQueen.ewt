@@ -4856,6 +4856,9 @@
       <name>$PROJ_DIR$\..\Source\zcl_HVACQueen.c</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\..\Source\zcl_HVACQueen.h</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\..\Source\zcl_HVACQueen_data.c</name>
     </file>
   </group>

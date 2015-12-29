@@ -312,12 +312,12 @@
           <state>MT_APP_FUNC</state>
           <state>MT_SYS_FUNC</state>
           <state>MT_ZDO_FUNC</state>
-          <state>LCD_SUPPORTED=DEBUG</state>
+          <state>xLCD_SUPPORTED=FALSE</state>
           <state>MULTICAST_ENABLED=FALSE</state>
           <state>ZCL_READ</state>
           <state>ZCL_WRITE</state>
           <state>ZCL_REPORT</state>
-          <state>ZCL_EZMODE</state>
+          <state>xZCL_EZMODE</state>
           <state>ZCL_BASIC</state>
           <state>ZCL_IDENTIFY</state>
           <state>ZCL_ON_OFF</state>
@@ -5773,6 +5773,9 @@
     </file>
     <file>
       <name>$PROJ_DIR$\..\Source\zcl_HVACQueen.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\Source\zcl_HVACQueen.h</name>
     </file>
     <file>
       <name>$PROJ_DIR$\..\Source\zcl_HVACQueen_data.c</name>

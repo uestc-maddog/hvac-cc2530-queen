@@ -1,5 +1,5 @@
 /**************************************************************************************************
-  Filename:       zcl_samplesw.h
+  Filename:       zcl_HVACQueen.h
   Revised:        $Date: 2015-08-19 17:11:00 -0700 (Wed, 19 Aug 2015) $
   Revision:       $Revision: 44460 $
 
@@ -39,8 +39,8 @@
   contact Texas Instruments Incorporated at www.TI.com.
 **************************************************************************************************/
 
-#ifndef ZCL_SAMPLESW_H
-#define ZCL_SAMPLESW_H
+#ifndef ZCL_HVACQUEEN_H
+#define ZCL_HVACQUEEN_H
 
 #ifdef __cplusplus
 extern "C"
@@ -55,19 +55,18 @@ extern "C"
 /*********************************************************************
  * CONSTANTS
  */
-#define SAMPLESW_ENDPOINT           8
+#define HVACQUEEN_ENDPOINT           8
 
-#define SAMPLESW_MAX_ATTRIBUTES     15
+#define HVACQUEEN_MAX_ATTRIBUTES     15
 
 #define LIGHT_OFF                       0x00
 #define LIGHT_ON                        0x01
 
 // Events for the sample app
-#define SAMPLESW_IDENTIFY_TIMEOUT_EVT         0x0001
-#define SAMPLESW_POLL_CONTROL_TIMEOUT_EVT     0x0002
-#define SAMPLESW_EZMODE_TIMEOUT_EVT           0x0004
-#define SAMPLESW_EZMODE_NEXTSTATE_EVT         0x0008
-#define SAMPLESW_MAIN_SCREEN_EVT              0x0010
+#define HVACQUEEN_IDENTIFY_TIMEOUT_EVT         0x0001
+#define HVACQUEEN_POLL_CONTROL_TIMEOUT_EVT     0x0002
+#define HVACQUEEN_EZMODE_TIMEOUT_EVT           0x0004
+#define HVACQUEEN_EZMODE_NEXTSTATE_EVT         0x0008
 
 
 // Application Display Modes
@@ -84,17 +83,17 @@ extern "C"
 /*********************************************************************
  * VARIABLES
  */
-extern SimpleDescriptionFormat_t zclSampleSw_SimpleDesc;
+extern SimpleDescriptionFormat_t zclHVACQueen_SimpleDesc;
 
-extern CONST zclAttrRec_t zclSampleSw_Attrs[];
+extern CONST zclAttrRec_t zclHVACQueen_Attrs[];
 
-extern uint8  zclSampleSw_OnOff;
+extern uint8  zclHVACQueen_OnOff;
 
-extern uint16 zclSampleSw_IdentifyTime;
+extern uint16 zclHVACQueen_IdentifyTime;
 
-extern uint8 zclSampleSw_OnOffSwitchType;
+extern uint8 zclHVACQueen_OnOffSwitchType;
 
-extern uint8 zclSampleSw_OnOffSwitchActions;
+extern uint8 zclHVACQueen_OnOffSwitchActions;
 
 /*********************************************************************
  * FUNCTIONS
@@ -103,12 +102,12 @@ extern uint8 zclSampleSw_OnOffSwitchActions;
  /*
   * Initialization for the task
   */
-extern void zclSampleSw_Init( byte task_id );
+extern void zclHVACQueen_Init( byte task_id );
 
 /*
  *  Event Process for the task
  */
-extern UINT16 zclSampleSw_event_loop( byte task_id, UINT16 events );
+extern UINT16 zclHVACQueen_event_loop( byte task_id, UINT16 events );
 
 
 /*********************************************************************

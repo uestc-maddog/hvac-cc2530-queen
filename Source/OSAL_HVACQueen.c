@@ -88,7 +88,7 @@ const pTaskEventHandlerFn tasksArr[] = {
   ZDNwkMgr_event_loop,
 #endif
   zcl_event_loop,
-  zclSampleSw_event_loop,
+  zclHVACQueen_event_loop,
 #if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
   zclOTA_event_loop
 #endif
@@ -132,7 +132,7 @@ void osalInitTasks( void )
   ZDNwkMgr_Init( taskID++ );
 #endif
   zcl_Init( taskID++ );
-  zclSampleSw_Init( taskID++ );
+  zclHVACQueen_Init( taskID++ );
 #if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
   zclOTA_Init( taskID );
 #endif
