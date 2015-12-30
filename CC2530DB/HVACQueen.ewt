@@ -4850,6 +4850,9 @@
   <group>
     <name>App</name>
     <file>
+      <name>$PROJ_DIR$\..\..\..\..\..\..\hvac-publiclibrary\hvac_protocol0.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\..\..\..\..\..\..\hvac-publiclibrary\hvac_protocol0.h</name>
     </file>
     <file>

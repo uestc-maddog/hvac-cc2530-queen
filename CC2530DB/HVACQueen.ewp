@@ -304,6 +304,7 @@
           <name>CCDefines</name>
           <state>HAL_UART=TRUE</state>
           <state>ZTOOL_P1</state>
+          <state>ZIGBEEPRO</state>
           <state>xMT_TASK</state>
           <state>SECURE=1</state>
           <state>TC_LINKKEY_JOIN</state>
@@ -5767,6 +5768,9 @@
   </configuration>
   <group>
     <name>App</name>
+    <file>
+      <name>$PROJ_DIR$\..\..\..\..\..\..\hvac-publiclibrary\hvac_protocol0.c</name>
+    </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\..\..\..\hvac-publiclibrary\hvac_protocol0.h</name>
     </file>

@@ -405,7 +405,7 @@ static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg)
   inComing_ptl0.CMD1 = pMsg->msg[2];    // load CMD1
   inComing_ptl0.CMD2 = pMsg->msg[3];    // load CMD2
   if(inComing_ptl0.length)              // if there is a data payload       
-    inComing_ptl0.data = &pMsg->msg[4]; // load data payload
+    inComing_ptl0.datapointer = &pMsg->msg[4]; // load data payload
   
   /* msg handler, react according to different tasks 
    *
@@ -453,32 +453,107 @@ static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg)
   }
 }
 
-
+/*********************************************************************
+ * @fn      hvacUART_PTL0_PING
+ *
+ * @brief   Receive PING CMD. Responce with ACK frame
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void hvacUART_PTL0_PING( void )
 {
-  asm("NOP");
+  PTL0_InitTypeDef uartPtl0Temp;
+  
+  uartPtl0Temp.SOF = 0XFE;
+  uartPtl0Temp.version = PTL0_FRAMEVER;
+  uartPtl0Temp.length = 0;      // ACK frame, no data payload
+  uartPtl0Temp.CMD1 = PTL0_ACK;
+  uartPtl0Temp.CMD2 = PTL0_EMPTYCMD;
+  
+  ptl0_sendMsg(uartPtl0Temp);
 }
 
+/*********************************************************************
+ * @fn      hvacUART_PTL0_ACK
+ *
+ * @brief   
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void hvacUART_PTL0_ACK( void )
 {
   asm("NOP");
 }
+
+/*********************************************************************
+ * @fn      hvacUART_PTL0_TRS_TRANS
+ *
+ * @brief   
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void hvacUART_PTL0_TRS_TRANS( void )
 {
   asm("NOP");
 }
+
+/*********************************************************************
+ * @fn      hvacUART_PTL0_NWK_STATUS_RP
+ *
+ * @brief   
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void hvacUART_PTL0_NWK_STATUS_RP( void )
 {
   asm("NOP");
 }
+
+/*********************************************************************
+ * @fn      hvacUART_PTL0_NWK_CMD
+ *
+ * @brief   
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void hvacUART_PTL0_NWK_CMD( void )
 {
   asm("NOP");
 }
+
+/*********************************************************************
+ * @fn      hvacUART_PTL0_LOC_STATUS_RP
+ *
+ * @brief   
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void hvacUART_PTL0_LOC_STATUS_RP( void )
 {
   asm("NOP");
 }
+
+/*********************************************************************
+ * @fn      hvacUART_PTL0_LOC_CMD
+ *
+ * @brief   
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void hvacUART_PTL0_LOC_CMD( void )
 {
   asm("NOP");
