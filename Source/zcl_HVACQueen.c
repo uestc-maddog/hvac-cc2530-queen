@@ -84,6 +84,8 @@
 #include "MT_UART.h"
 #include "MT.h"
 
+#include "hvac_protocol0.h"
+
 /*********************************************************************
  * MACROS
  */
@@ -193,6 +195,14 @@ static uint8 zclHVACQueen_ProcessInDiscAttrsExtRspCmd( zclIncomingMsg_t *pInMsg 
 static void zclHVACQueen_ProcessOTAMsgs( zclOTA_CallbackMsg_t* pMsg );
 #endif
 
+// UART handler functions
+static void hvacUART_PTL0_PING( void );
+static void hvacUART_PTL0_ACK( void );
+static void hvacUART_PTL0_TRS_TRANS( void );
+static void hvacUART_PTL0_NWK_STATUS_RP( void );
+static void hvacUART_PTL0_NWK_CMD( void );
+static void hvacUART_PTL0_LOC_STATUS_RP( void );
+static void hvacUART_PTL0_LOC_CMD( void );
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -371,29 +381,108 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
 }
 
 /*********************************************************************
- * @fn      zclHVACQueen_HandleKeys
+ * @fn      HVACQueen_HandleUart
  *
- * @brief   Handles all key events for this device.
+ * @brief   Handles all UART events for this device.
  *
- * @param   shift - true if in shift/alt.
- * @param   keys - bit field for key events. Valid entries:
- *                 HAL_KEY_SW_5
- *                 HAL_KEY_SW_4
- *                 HAL_KEY_SW_2
- *                 HAL_KEY_SW_1
+ * @param   pMsg - incoming uart msg
+ *          pMsg->hdr : msg header. 
+ *          pMsg->msg : msg buffer
+ *          pMsg->msg[0], data length high 8 bits    
+ *          pMsg->msg[1], data length low 8 bits
+ *          pMsg->msg[2], CMD1
+ *          pMsg->msg[3], CMD2
+ *          pMsg->msg[4...], data payload (if there is one)
  *
  * @return  none
  */
 static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg) 
 {
-  uint8 helloW[13] = "Hello World!";
+  PTL0_InitTypeDef inComing_ptl0;
   
-  while (HalUARTWrite(0, helloW, 12) != 12)
-  { 
-    HalUARTPoll();
+  /* load the frame */
+  inComing_ptl0.length = (pMsg->msg[0] << 8) + pMsg->msg[1]; //load length
+  inComing_ptl0.CMD1 = pMsg->msg[2];    // load CMD1
+  inComing_ptl0.CMD2 = pMsg->msg[3];    // load CMD2
+  if(inComing_ptl0.length)              // if there is a data payload       
+    inComing_ptl0.data = &pMsg->msg[4]; // load data payload
+  
+  /* msg handler, react according to different tasks 
+   *
+   * refer to hvac_protocol0.h for more cmd detail
+   */
+  switch(inComing_ptl0.CMD1)
+  {
+    // Ping command, send ack
+    case PTL0_PING:
+      hvacUART_PTL0_PING();
+      break;
+      
+    // ACK received, clear flag  
+    case PTL0_ACK:
+      hvacUART_PTL0_ACK();
+      break;   
+      
+    // Transmission command, send to destination
+    case PTL0_TRS_TRANS:
+      hvacUART_PTL0_TRS_TRANS();
+      break;
+      
+    // Network status report  
+    case PTL0_NWK_STATUS_RP:
+      hvacUART_PTL0_NWK_STATUS_RP();
+      break;
+      
+    // Network command   
+    case PTL0_NWK_CMD:
+      hvacUART_PTL0_NWK_CMD();
+      break;
+      
+    // Local status report  
+    case PTL0_LOC_STATUS_RP:
+      hvacUART_PTL0_LOC_STATUS_RP();
+      break;
+      
+    // Local command  
+    case PTL0_LOC_CMD:
+      hvacUART_PTL0_LOC_CMD();
+      break;
+      
+    default:
+      break;
   }
 }
 
+
+static void hvacUART_PTL0_PING( void )
+{
+  asm("NOP");
+}
+
+static void hvacUART_PTL0_ACK( void )
+{
+  asm("NOP");
+}
+static void hvacUART_PTL0_TRS_TRANS( void )
+{
+  asm("NOP");
+}
+static void hvacUART_PTL0_NWK_STATUS_RP( void )
+{
+  asm("NOP");
+}
+static void hvacUART_PTL0_NWK_CMD( void )
+{
+  asm("NOP");
+}
+static void hvacUART_PTL0_LOC_STATUS_RP( void )
+{
+  asm("NOP");
+}
+static void hvacUART_PTL0_LOC_CMD( void )
+{
+  asm("NOP");
+}
 
 /*********************************************************************
  * @fn      zclHVACQueen_HandleKeys
