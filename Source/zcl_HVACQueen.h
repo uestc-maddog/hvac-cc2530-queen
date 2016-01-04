@@ -95,6 +95,7 @@ extern uint8 zclHVACQueen_OnOffSwitchType;
 
 extern uint8 zclHVACQueen_OnOffSwitchActions;
 
+extern uint8 hvacCriticalResource;
 /*********************************************************************
  * FUNCTIONS
  */

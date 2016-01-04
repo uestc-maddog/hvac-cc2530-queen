@@ -108,6 +108,10 @@ uint8 zclHVACQueen_OnOffSwitchType = ON_OFF_SWITCH_TYPE_TOGGLE;
 
 uint8 zclHVACQueen_OnOffSwitchActions = ON_OFF_SWITCH_ACTIONS_2;   // Toggle -> Toggle
 
+#ifdef HVAC_CRITICAL_RESOURCE 
+uint8 hvacCriticalResource = true;      
+#endif
+
 /*********************************************************************
  * GLOBAL FUNCTIONS
  */
@@ -294,7 +298,9 @@ void zclHVACQueen_Init( byte task_id )
   ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp );
   ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp );
   
-
+  // Init critical resource
+  ptl0_initCriticalResource();
+  
 #if defined (OTA_CLIENT) && (OTA_CLIENT == TRUE)
   // Register for callback events from the ZCL OTA
   zclOTA_Register(zclHVACQueen_TaskID);
@@ -466,19 +472,32 @@ static void hvacUART_PTL0_PING( void )
 {
   PTL0_InitTypeDef uartPtl0Temp;
   
-  uartPtl0Temp.SOF = 0XFE;
-  uartPtl0Temp.version = PTL0_FRAMEVER;
-  uartPtl0Temp.length = 0;      // ACK frame, no data payload
-  uartPtl0Temp.CMD1 = PTL0_ACK;
-  uartPtl0Temp.CMD2 = PTL0_EMPTYCMD;
-  
-  ptl0_sendMsg(uartPtl0Temp);
+  if((ptl0_requireCriticalResource()) && ptl0_queryStat() == PTL0_STA_IDEL)
+  {
+    // update PTL0 status
+    ptl0_updateStat(PTL0_STA_PING_REC);
+    
+    // configurate the send structure
+    uartPtl0Temp.SOF = 0XFE;
+    uartPtl0Temp.version = PTL0_FRAMEVER;
+    uartPtl0Temp.length = 0;      // ACK frame, no data payload
+    uartPtl0Temp.CMD1 = PTL0_ACK;
+    uartPtl0Temp.CMD2 = PTL0_EMPTYCMD;
+    
+    // send through PTL0 UART
+    ptl0_sendMsg(uartPtl0Temp);
+    
+    // release critical resource
+    ptl0_releaseCriticalResource();  
+    // back to idel
+    ptl0_updateStat(PTL0_STA_IDEL);
+  }
 }
 
 /*********************************************************************
  * @fn      hvacUART_PTL0_ACK
  *
- * @brief   
+ * @brief   Receive ACK. Set PTL0 status.
  *
  * @param   none
  *
@@ -486,7 +505,16 @@ static void hvacUART_PTL0_PING( void )
  */
 static void hvacUART_PTL0_ACK( void )
 {
-  asm("NOP");
+  // check current state, see whether anything need to do
+  switch(ptl0_queryStat())
+  {
+    // currently nothing to do.
+    default:
+      break;
+  }
+  
+  // receive ACK, communication complete, back to idel
+  ptl0_updateStat(PTL0_STA_IDEL);
 }
 
 /*********************************************************************
