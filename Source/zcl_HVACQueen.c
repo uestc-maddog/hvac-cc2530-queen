@@ -203,7 +203,7 @@ static void zclHVACQueen_ProcessOTAMsgs( zclOTA_CallbackMsg_t* pMsg );
 #endif
 
 // Zigbee announce handler
-void hvacHandleZDOAnnounce(zdoIncomingMsg_t * );
+uint8 hvacHandleZDOAnnounce(zdoIncomingMsg_t * );
 
 // UART handler functions
 static void hvacUART_PTL0_PING( void );
@@ -406,14 +406,15 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
  *
  * @param   MSGpkt - incoming message 
  *
- * @return  none
+ * @return  true or false
  */
-void hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
+uint8 hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
 {
   ZDO_DeviceAnnce_t Annce;
   AddrMgrEntry_t annouEntry;
   PTL0_InitTypeDef outGoingPTL0Msg;
-    
+  uint8 *ptl0_payloadbuf;
+  
   // Parse message
   ZDO_ParseDeviceAnnce( MSGpkt, &Annce );
   
@@ -430,17 +431,31 @@ void hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
   else
   {
     // its a new child. Prepare a network status update for STM32.
+    // use memory allocation to save data, must release memory after process
+    
+    // prepare the buffer to store the data payload
+    ptl0_payloadbuf = (uint8 *)osal_mem_alloc( PTL0_NWK_STATUS_RP_NEWDEV_DATALENGTH );
+    
+    // check valid
+    if (ptl0_payloadbuf == NULL)
+      return false;
+    
+    // copy mac address to data payload
+    osal_memcpy( ptl0_payloadbuf, Annce.extAddr, Z_EXTADDR_LEN );
+    
     // assemble message.
+    // (not finish)
     outGoingPTL0Msg.CMD1 = PTL0_NWK_STATUS_RP;
     outGoingPTL0Msg.CMD2 = PTL0_NWK_STATUS_RP_NEWDEV;
-    outGoingPTL0Msg.datapointer = ;
-    outGoingPTL0Msg.length = ;
+    outGoingPTL0Msg.datapointer = ptl0_payloadbuf;
+    outGoingPTL0Msg.length = Z_EXTADDR_LEN;
     outGoingPTL0Msg.SOF = PTL0_SOF;
     outGoingPTL0Msg.version = PTL0_FRAMEVER;
 
     // push event into event stack
-    ptl0_pushEvent(outGoingPTL0Msg);
+    ptl0_pushEvent(outGoingPTL0Msg);   
   }
+  return true;
 }
 
 
@@ -530,12 +545,13 @@ static void hvacUART_PTL0_PING( void )
 {
   PTL0_InitTypeDef uartPtl0Temp;
   
+
   // If PTL0 idel, send ACK
   if(ptl0_queryStat() == PTL0_STA_IDEL)
   {
     // update PTL0 status
     ptl0_updateStat(PTL0_STA_PING_REC);
-    
+  
     // configurate the ACK structure
     uartPtl0Temp.SOF = PTL0_SOF;
     uartPtl0Temp.version = PTL0_FRAMEVER;
