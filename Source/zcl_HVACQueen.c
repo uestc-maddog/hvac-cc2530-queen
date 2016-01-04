@@ -86,6 +86,13 @@
 
 #include "hvac_protocol0.h"
 
+/* ZDO */
+#include "ZDObject.h"
+
+/* NWK */
+#include "NLMEDE.h"
+#include "AddrMgr.h"
+
 /*********************************************************************
  * MACROS
  */
@@ -195,14 +202,17 @@ static uint8 zclHVACQueen_ProcessInDiscAttrsExtRspCmd( zclIncomingMsg_t *pInMsg 
 static void zclHVACQueen_ProcessOTAMsgs( zclOTA_CallbackMsg_t* pMsg );
 #endif
 
+// Zigbee announce handler
+void hvacHandleZDOAnnounce(zdoIncomingMsg_t * );
+
 // UART handler functions
 static void hvacUART_PTL0_PING( void );
 static void hvacUART_PTL0_ACK( void );
-static void hvacUART_PTL0_TRS_TRANS( PTL0_InitTypeDef *ptl0_buf );
-static void hvacUART_PTL0_NWK_STATUS_RP( PTL0_InitTypeDef *ptl0_buf );
-static void hvacUART_PTL0_NWK_CMD( PTL0_InitTypeDef *ptl0_buf );
-static void hvacUART_PTL0_LOC_STATUS_RP( PTL0_InitTypeDef *ptl0_buf );
-static void hvacUART_PTL0_LOC_CMD( PTL0_InitTypeDef *ptl0_buf );
+static void hvacUART_PTL0_TRS_TRANS( PTL0_InitTypeDef * );
+static void hvacUART_PTL0_NWK_STATUS_RP( PTL0_InitTypeDef * );
+static void hvacUART_PTL0_NWK_CMD( PTL0_InitTypeDef * );
+static void hvacUART_PTL0_LOC_STATUS_RP( PTL0_InitTypeDef * );
+static void hvacUART_PTL0_LOC_CMD( PTL0_InitTypeDef * );
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -291,8 +301,9 @@ void zclHVACQueen_Init( byte task_id )
   // Register for a test endpoint
   afRegister( &HVACQueen_TestEp );
 
-  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp );
-  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp );
+  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Device_annce );
+  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp ); //? Consider remove
+  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp ); //? Consider remove
   
   // Init critical resource
   ptl0_initPTL0Status();
@@ -336,7 +347,11 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
         /*case KEY_CHANGE:
           zclHVACQueen_HandleKeys( ((keyChange_t *)MSGpkt)->state, ((keyChange_t *)MSGpkt)->keys );
           break;*/
-
+        
+        case ZDO_CB_MSG:
+          // in coming network announce
+          hvacHandleZDOAnnounce((zdoIncomingMsg_t *)MSGpkt);
+          
         case ZDO_STATE_CHANGE:
           zclHVACQueen_NwkState = (devStates_t)(MSGpkt->hdr.status);
 
@@ -382,6 +397,53 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
   return 0;
 }
 
+
+/*********************************************************************
+ * @fn      hvacHandleZDOAnnounce
+ *
+ * @brief   Handles all network announce. Once a new device join 
+ *          network, a announcement will send to network. 
+ *
+ * @param   MSGpkt - incoming message 
+ *
+ * @return  none
+ */
+void hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
+{
+  ZDO_DeviceAnnce_t Annce;
+  AddrMgrEntry_t annouEntry;
+  PTL0_InitTypeDef outGoingPTL0Msg;
+    
+  // Parse message
+  ZDO_ParseDeviceAnnce( MSGpkt, &Annce );
+  
+  annouEntry.user = ADDRMGR_USER_DEFAULT;
+  osal_memcpy( annouEntry.extAddr, Annce.extAddr, Z_EXTADDR_LEN );
+  
+  // check devcie available? Already in table?
+  if(AddrMgrEntryLookupExt( &annouEntry ))
+  {
+    // mac address already in table, child reset, rejoin network.
+    // Do nothing for now. 
+    asm("NOP");
+  }
+  else
+  {
+    // its a new child. Prepare a network status update for STM32.
+    // assemble message.
+    outGoingPTL0Msg.CMD1 = PTL0_NWK_STATUS_RP;
+    outGoingPTL0Msg.CMD2 = PTL0_NWK_STATUS_RP_NEWDEV;
+    outGoingPTL0Msg.datapointer = ;
+    outGoingPTL0Msg.length = ;
+    outGoingPTL0Msg.SOF = PTL0_SOF;
+    outGoingPTL0Msg.version = PTL0_FRAMEVER;
+
+    // push event into event stack
+    ptl0_pushEvent(outGoingPTL0Msg);
+  }
+}
+
+
 /*********************************************************************
  * @fn      HVACQueen_HandleUart
  *
@@ -414,39 +476,39 @@ static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg)
    * refer to hvac_protocol0.h for more cmd detail
    */
   switch(inComing_ptl0.CMD1)
-  {
-    // Ping command, send ack
+  { 
     case PTL0_PING:
+      // Ping command, send ack
       hvacUART_PTL0_PING();
       break;
-      
-    // ACK received, clear flag  
+           
     case PTL0_ACK:
+      // ACK received, clear flag
       hvacUART_PTL0_ACK();
       break;   
       
-    // Transmission command, send to destination
     case PTL0_TRS_TRANS:
+      // Transmission command, send to destination
       hvacUART_PTL0_TRS_TRANS(&inComing_ptl0);
       break;
-      
-    // Network status report  
+        
     case PTL0_NWK_STATUS_RP:
+      // Network status report 
       hvacUART_PTL0_NWK_STATUS_RP(&inComing_ptl0);
       break;
-      
-    // Network command   
+          
     case PTL0_NWK_CMD:
+      // Network command  
       hvacUART_PTL0_NWK_CMD(&inComing_ptl0);
       break;
-      
-    // Local status report  
+          
     case PTL0_LOC_STATUS_RP:
+      // Local status report
       hvacUART_PTL0_LOC_STATUS_RP(&inComing_ptl0);
       break;
       
-    // Local command  
     case PTL0_LOC_CMD:
+      // Local command
       hvacUART_PTL0_LOC_CMD(&inComing_ptl0);
       break;
       
@@ -475,7 +537,7 @@ static void hvacUART_PTL0_PING( void )
     ptl0_updateStat(PTL0_STA_PING_REC);
     
     // configurate the ACK structure
-    uartPtl0Temp.SOF = 0XFE;
+    uartPtl0Temp.SOF = PTL0_SOF;
     uartPtl0Temp.version = PTL0_FRAMEVER;
     uartPtl0Temp.length = 0;      // ACK frame, no data payload
     uartPtl0Temp.CMD1 = PTL0_ACK;
@@ -554,16 +616,6 @@ static void hvacUART_PTL0_NWK_STATUS_RP( PTL0_InitTypeDef *ptl0_buf )
  */
 static void hvacUART_PTL0_NWK_CMD( PTL0_InitTypeDef *ptl0_buf )
 {
-  PTL0_InitTypeDef uartPtl0ACK;
-  
-  // configurate the ACK structure
-  uartPtl0ACK.SOF = 0XFE;
-  uartPtl0ACK.version = PTL0_FRAMEVER;
-  uartPtl0ACK.length = 0;      // ACK frame, no data payload
-  uartPtl0ACK.CMD1 = PTL0_ACK;
-  uartPtl0ACK.CMD2 = PTL0_EMPTYCMD;
-  
-  
   // update status, receive network cmd frame
   ptl0_updateStat(PTL0_STA_NWKCMD_REC);
   
