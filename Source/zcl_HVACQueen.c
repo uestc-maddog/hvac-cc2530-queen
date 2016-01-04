@@ -520,7 +520,7 @@ static void hvacUART_PTL0_ACK( void )
 /*********************************************************************
  * @fn      hvacUART_PTL0_TRS_TRANS
  *
- * @brief   
+ * @brief   Receiving transparent sending frame, send Msg
  *
  * @param   none
  *
@@ -534,7 +534,8 @@ static void hvacUART_PTL0_TRS_TRANS( void )
 /*********************************************************************
  * @fn      hvacUART_PTL0_NWK_STATUS_RP
  *
- * @brief   
+ * @brief   Receiving network status report frame. Not available for 
+ *          CC2530.
  *
  * @param   none
  *
@@ -542,13 +543,15 @@ static void hvacUART_PTL0_TRS_TRANS( void )
  */
 static void hvacUART_PTL0_NWK_STATUS_RP( void )
 {
+  // Not an option for CC2530, network report only initialize by 
+  // CC2530 and received by STM32. 
   asm("NOP");
 }
 
 /*********************************************************************
  * @fn      hvacUART_PTL0_NWK_CMD
  *
- * @brief   
+ * @brief   Receiving network cmd report frame. 
  *
  * @param   none
  *
@@ -562,7 +565,7 @@ static void hvacUART_PTL0_NWK_CMD( void )
 /*********************************************************************
  * @fn      hvacUART_PTL0_LOC_STATUS_RP
  *
- * @brief   
+ * @brief   Receiving local status report.
  *
  * @param   none
  *
@@ -576,7 +579,7 @@ static void hvacUART_PTL0_LOC_STATUS_RP( void )
 /*********************************************************************
  * @fn      hvacUART_PTL0_LOC_CMD
  *
- * @brief   
+ * @brief   receiving local cmd report.
  *
  * @param   none
  *
