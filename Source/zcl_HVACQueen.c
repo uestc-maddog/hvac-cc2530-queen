@@ -108,10 +108,6 @@ uint8 zclHVACQueen_OnOffSwitchType = ON_OFF_SWITCH_TYPE_TOGGLE;
 
 uint8 zclHVACQueen_OnOffSwitchActions = ON_OFF_SWITCH_ACTIONS_2;   // Toggle -> Toggle
 
-#ifdef HVAC_CRITICAL_RESOURCE 
-uint8 hvacCriticalResource = true;      
-#endif
-
 /*********************************************************************
  * GLOBAL FUNCTIONS
  */
@@ -202,11 +198,11 @@ static void zclHVACQueen_ProcessOTAMsgs( zclOTA_CallbackMsg_t* pMsg );
 // UART handler functions
 static void hvacUART_PTL0_PING( void );
 static void hvacUART_PTL0_ACK( void );
-static void hvacUART_PTL0_TRS_TRANS( void );
-static void hvacUART_PTL0_NWK_STATUS_RP( void );
-static void hvacUART_PTL0_NWK_CMD( void );
-static void hvacUART_PTL0_LOC_STATUS_RP( void );
-static void hvacUART_PTL0_LOC_CMD( void );
+static void hvacUART_PTL0_TRS_TRANS( PTL0_InitTypeDef *ptl0_buf );
+static void hvacUART_PTL0_NWK_STATUS_RP( PTL0_InitTypeDef *ptl0_buf );
+static void hvacUART_PTL0_NWK_CMD( PTL0_InitTypeDef *ptl0_buf );
+static void hvacUART_PTL0_LOC_STATUS_RP( PTL0_InitTypeDef *ptl0_buf );
+static void hvacUART_PTL0_LOC_CMD( PTL0_InitTypeDef *ptl0_buf );
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -299,7 +295,7 @@ void zclHVACQueen_Init( byte task_id )
   ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp );
   
   // Init critical resource
-  ptl0_initCriticalResource();
+  ptl0_initPTL0Status();
   
 #if defined (OTA_CLIENT) && (OTA_CLIENT == TRUE)
   // Register for callback events from the ZCL OTA
@@ -431,27 +427,27 @@ static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg)
       
     // Transmission command, send to destination
     case PTL0_TRS_TRANS:
-      hvacUART_PTL0_TRS_TRANS();
+      hvacUART_PTL0_TRS_TRANS(&inComing_ptl0);
       break;
       
     // Network status report  
     case PTL0_NWK_STATUS_RP:
-      hvacUART_PTL0_NWK_STATUS_RP();
+      hvacUART_PTL0_NWK_STATUS_RP(&inComing_ptl0);
       break;
       
     // Network command   
     case PTL0_NWK_CMD:
-      hvacUART_PTL0_NWK_CMD();
+      hvacUART_PTL0_NWK_CMD(&inComing_ptl0);
       break;
       
     // Local status report  
     case PTL0_LOC_STATUS_RP:
-      hvacUART_PTL0_LOC_STATUS_RP();
+      hvacUART_PTL0_LOC_STATUS_RP(&inComing_ptl0);
       break;
       
     // Local command  
     case PTL0_LOC_CMD:
-      hvacUART_PTL0_LOC_CMD();
+      hvacUART_PTL0_LOC_CMD(&inComing_ptl0);
       break;
       
     default:
@@ -472,12 +468,13 @@ static void hvacUART_PTL0_PING( void )
 {
   PTL0_InitTypeDef uartPtl0Temp;
   
-  if((ptl0_requireCriticalResource()) && ptl0_queryStat() == PTL0_STA_IDEL)
+  // If PTL0 idel, send ACK
+  if(ptl0_queryStat() == PTL0_STA_IDEL)
   {
     // update PTL0 status
     ptl0_updateStat(PTL0_STA_PING_REC);
     
-    // configurate the send structure
+    // configurate the ACK structure
     uartPtl0Temp.SOF = 0XFE;
     uartPtl0Temp.version = PTL0_FRAMEVER;
     uartPtl0Temp.length = 0;      // ACK frame, no data payload
@@ -487,8 +484,6 @@ static void hvacUART_PTL0_PING( void )
     // send through PTL0 UART
     ptl0_sendMsg(uartPtl0Temp);
     
-    // release critical resource
-    ptl0_releaseCriticalResource();  
     // back to idel
     ptl0_updateStat(PTL0_STA_IDEL);
   }
@@ -526,7 +521,7 @@ static void hvacUART_PTL0_ACK( void )
  *
  * @return  none
  */
-static void hvacUART_PTL0_TRS_TRANS( void )
+static void hvacUART_PTL0_TRS_TRANS( PTL0_InitTypeDef *ptl0_buf )
 {
   asm("NOP");
 }
@@ -541,7 +536,7 @@ static void hvacUART_PTL0_TRS_TRANS( void )
  *
  * @return  none
  */
-static void hvacUART_PTL0_NWK_STATUS_RP( void )
+static void hvacUART_PTL0_NWK_STATUS_RP( PTL0_InitTypeDef *ptl0_buf )
 {
   // Not an option for CC2530, network report only initialize by 
   // CC2530 and received by STM32. 
@@ -557,8 +552,27 @@ static void hvacUART_PTL0_NWK_STATUS_RP( void )
  *
  * @return  none
  */
-static void hvacUART_PTL0_NWK_CMD( void )
+static void hvacUART_PTL0_NWK_CMD( PTL0_InitTypeDef *ptl0_buf )
 {
+  PTL0_InitTypeDef uartPtl0ACK;
+  
+  // configurate the ACK structure
+  uartPtl0ACK.SOF = 0XFE;
+  uartPtl0ACK.version = PTL0_FRAMEVER;
+  uartPtl0ACK.length = 0;      // ACK frame, no data payload
+  uartPtl0ACK.CMD1 = PTL0_ACK;
+  uartPtl0ACK.CMD2 = PTL0_EMPTYCMD;
+  
+  
+  // update status, receive network cmd frame
+  ptl0_updateStat(PTL0_STA_NWKCMD_REC);
+  
+  switch(ptl0_buf->CMD2)
+  {
+    // response according to different command
+    default:
+      break;
+  }
   asm("NOP");
 }
 
@@ -571,7 +585,7 @@ static void hvacUART_PTL0_NWK_CMD( void )
  *
  * @return  none
  */
-static void hvacUART_PTL0_LOC_STATUS_RP( void )
+static void hvacUART_PTL0_LOC_STATUS_RP( PTL0_InitTypeDef *ptl0_buf )
 {
   asm("NOP");
 }
@@ -585,7 +599,7 @@ static void hvacUART_PTL0_LOC_STATUS_RP( void )
  *
  * @return  none
  */
-static void hvacUART_PTL0_LOC_CMD( void )
+static void hvacUART_PTL0_LOC_CMD( PTL0_InitTypeDef *ptl0_buf )
 {
   asm("NOP");
 }
