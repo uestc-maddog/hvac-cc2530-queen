@@ -312,15 +312,15 @@
           <state>xHOLD_AUTO_START</state>
           <state>xLCD_SUPPORTED=FALSE</state>
           <state>MULTICAST_ENABLED=FALSE</state>
-          <state>ZCL_READ</state>
-          <state>ZCL_WRITE</state>
-          <state>ZCL_REPORT</state>
+          <state>xZCL_READ</state>
+          <state>xZCL_WRITE</state>
+          <state>xZCL_REPORT</state>
           <state>xZCL_EZMODE</state>
-          <state>ZCL_BASIC</state>
-          <state>ZCL_IDENTIFY</state>
-          <state>ZCL_ON_OFF</state>
-          <state>ZCL_DIAGNOSTIC</state>
-          <state>FEATURE_SYSTEM_STATS</state>
+          <state>xZCL_BASIC</state>
+          <state>xZCL_IDENTIFY</state>
+          <state>xZCL_ON_OFF</state>
+          <state>xZCL_DIAGNOSTIC</state>
+          <state>xFEATURE_SYSTEM_STATS</state>
         </option>
         <option>
           <name>CCPreprocFile</name>

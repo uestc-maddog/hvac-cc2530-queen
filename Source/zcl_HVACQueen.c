@@ -447,12 +447,6 @@ uint8 hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
   // check devcie available? Already in table?
   if(AddrMgrEntryLookupExt( &annouEntry ))
   {
-    // mac address already in table, child reset, rejoin network.
-    // Do nothing for now. 
-    asm("NOP");
-  }
-  else
-  {
     // its a new child. Prepare a network status update for STM32.
     // use memory allocation to save data, must release memory after process
     
@@ -475,13 +469,17 @@ uint8 hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
     outGoingPTL0Msg.SOF = PTL0_SOF;
     outGoingPTL0Msg.version = PTL0_FRAMEVER;
 
-    // push event into event stack
-    ptl0_pushEvent(outGoingPTL0Msg);   
-    
-    // update timer, process event immediantly (10ms)
-    osal_start_timerEx( zclHVACQueen_TaskID,
-                      HVACPTL0_EVENT_TIMEOUT_EVT,
-                      HVACPTL0_INSTANT_TIMEOUT );
+    // send event through uart immediantly
+    ptl0_sendMsg(outGoingPTL0Msg);
+     
+    // release memory
+    osal_mem_free(ptl0_payloadbuf);
+  }
+  else
+  {
+    // mac address already in table, child reset, rejoin network.
+    // Do nothing for now. 
+    asm("NOP");
   }
   return true;
 }
