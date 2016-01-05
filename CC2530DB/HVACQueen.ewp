@@ -305,7 +305,6 @@
           <state>HAL_UART=TRUE</state>
           <state>ZTOOL_P1</state>
           <state>ZIGBEEPRO</state>
-          <state>xMT_TASK</state>
           <state>SECURE=1</state>
           <state>TC_LINKKEY_JOIN</state>
           <state>NV_INIT</state>

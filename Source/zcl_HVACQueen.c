@@ -392,6 +392,29 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
 
     return ( events ^ HVACQUEEN_IDENTIFY_TIMEOUT_EVT );
   }
+  
+  if (events & HVACPTL0_EVENT_TIMEOUT_EVT )
+  {
+    PTL0_InitTypeDef* PTL0_sendBuf;
+    
+    // If there is any event, prepare to send
+    while(ptl0_queryEvent())
+    {
+      // get event
+      PTL0_sendBuf = ptl0_getEvent();
+      
+      // send through PTL0 UART
+      ptl0_sendMsg(*PTL0_sendBuf);
+      
+      // update PTL0 status
+      ptl0_updateStat((*PTL0_sendBuf).CMD1);
+      
+      // release memory
+      osal_mem_free(PTL0_sendBuf);
+    }
+    
+    return ( events ^ HVACPTL0_EVENT_TIMEOUT_EVT ); 
+  }
 
   // Discard unknown events
   return 0;
@@ -454,6 +477,11 @@ uint8 hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
 
     // push event into event stack
     ptl0_pushEvent(outGoingPTL0Msg);   
+    
+    // update timer, process event immediantly (10ms)
+    osal_start_timerEx( zclHVACQueen_TaskID,
+                      HVACPTL0_EVENT_TIMEOUT_EVT,
+                      HVACPTL0_INSTANT_TIMEOUT );
   }
   return true;
 }
