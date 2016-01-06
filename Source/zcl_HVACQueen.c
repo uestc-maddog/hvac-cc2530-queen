@@ -303,8 +303,8 @@ void zclHVACQueen_Init( byte task_id )
   afRegister( &HVACQueen_TestEp );
 
   ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Device_annce );
-  //ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp ); //? Consider remove
-  //ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp ); //? Consider remove
+  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp ); //? Consider remove
+  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp ); //? Consider remove
   
   // Init critical resource
   ptl0_initPTL0Status();
@@ -458,9 +458,11 @@ uint8 hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
     outGoingPTL0Msg.version = PTL0_FRAMEVER;
 
     // push to event stack, set event
-    if(ptl0_pushEvent(outGoingPTL0Msg) 
-       && osal_set_event(zclHVACQueen_TaskID , HVACPTL0_EVENT_TIMEOUT_EVT))
+    if(ptl0_pushEvent(outGoingPTL0Msg))
+    {
+      osal_set_event(zclHVACQueen_TaskID , HVACPTL0_EVENT_TIMEOUT_EVT);
       return true;
+    }
     else
       return false;
   }
