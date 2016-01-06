@@ -67,11 +67,11 @@ extern "C"
 #define HVACQUEEN_POLL_CONTROL_TIMEOUT_EVT     0x0002
 #define HVACQUEEN_EZMODE_TIMEOUT_EVT           0x0004
 #define HVACQUEEN_EZMODE_NEXTSTATE_EVT         0x0008
-#define HVACPTL0_EVENT_TIMEOUT_EVT             0x0100
+#define HVACPTL0_EVENT_TIMEOUT_EVT             0x0004
 
 // Timeout 
 #define HVACPTL0_INSTANT_TIMEOUT        10      // delay 10ms, check instantly
-#define HVACPTL0_NORMAL_TIMEOUT         5000    // check event every 5s
+#define HVACPTL0_NORMAL_TIMEOUT         1000    // check event every 1s
   
 // Application Display Modes
 #define SW_MAINMODE      0x00

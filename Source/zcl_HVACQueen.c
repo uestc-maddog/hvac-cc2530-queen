@@ -158,8 +158,6 @@ static endPointDesc_t HVACQueen_TestEp =
   (afNetworkLatencyReq_t)0            // No Network Latency req
 };
 
-uint8 giSwScreenMode = SW_MAINMODE;   // display the main screen mode first
-
 static uint8 aProcessCmd[] = { 1, 0, 0, 0 }; // used for reset command, { length + cmd0 + cmd1 + data }
 
 uint8 gPermitDuration = 0;    // permit joining default to disabled
@@ -285,15 +283,18 @@ void zclHVACQueen_Init( byte task_id )
   // This app is part of the Home Automation Profile
   zclHA_Init( &zclHVACQueen_SimpleDesc );
 
+  // Remove all ZCL function
+  /*
   // Register the ZCL General Cluster Library callback functions
-  zclGeneral_RegisterCmdCallbacks( HVACQUEEN_ENDPOINT, &zclHVACQueen_CmdCallbacks );
+  //zclGeneral_RegisterCmdCallbacks( HVACQUEEN_ENDPOINT, &zclHVACQueen_CmdCallbacks );
 
   // Register the application's attribute list
-  zcl_registerAttrList( HVACQUEEN_ENDPOINT, HVACQUEEN_MAX_ATTRIBUTES, zclHVACQueen_Attrs );
+  //zcl_registerAttrList( HVACQUEEN_ENDPOINT, HVACQUEEN_MAX_ATTRIBUTES, zclHVACQueen_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zcl_registerForMsg( zclHVACQueen_TaskID );
-
+  //zcl_registerForMsg( zclHVACQueen_TaskID );
+  */
+  
   // Initialize UART
   MT_UartInit ();
   MT_UartRegisterTaskID (zclHVACQueen_TaskID);
@@ -302,17 +303,11 @@ void zclHVACQueen_Init( byte task_id )
   afRegister( &HVACQueen_TestEp );
 
   ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Device_annce );
-  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp ); //? Consider remove
-  ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp ); //? Consider remove
+  //ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, End_Device_Bind_rsp ); //? Consider remove
+  //ZDO_RegisterForZDOMsg( zclHVACQueen_TaskID, Match_Desc_rsp ); //? Consider remove
   
   // Init critical resource
   ptl0_initPTL0Status();
-  
-#if defined (OTA_CLIENT) && (OTA_CLIENT == TRUE)
-  // Register for callback events from the ZCL OTA
-  zclOTA_Register(zclHVACQueen_TaskID);
-#endif
-
 }
 
 /*********************************************************************
@@ -337,7 +332,7 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
       { 
         case ZCL_INCOMING_MSG:
           // Incoming ZCL Foundation command/response messages
-          zclHVACQueen_ProcessIncomingMsg( (zclIncomingMsg_t *)MSGpkt );
+          //zclHVACQueen_ProcessIncomingMsg( (zclIncomingMsg_t *)MSGpkt );
           break;
 
         case CMD_SERIAL_MSG:
@@ -360,19 +355,10 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
                (zclHVACQueen_NwkState == DEV_ROUTER)   ||
                (zclHVACQueen_NwkState == DEV_END_DEVICE) )
           {
-#ifndef HOLD_AUTO_START
-            giSwScreenMode = SW_MAINMODE;
-            //zclHVACQueen_LcdDisplayUpdate();
-#endif
+            // Network established
           }
           break;
-
-#if defined (OTA_CLIENT) && (OTA_CLIENT == TRUE)
-        case ZCL_OTA_CALLBACK_IND:
-          zclHVACQueen_ProcessOTAMsgs( (zclOTA_CallbackMsg_t*)MSGpkt  );
-          break;
-#endif
-
+          
         default:
           break;
       }
@@ -385,13 +371,15 @@ uint16 zclHVACQueen_event_loop( uint8 task_id, uint16 events )
     return (events ^ SYS_EVENT_MSG);
   }
 
+  /*
   if ( events & HVACQUEEN_IDENTIFY_TIMEOUT_EVT )
   {
     zclHVACQueen_IdentifyTime = 10;
     zclHVACQueen_ProcessIdentifyTimeChange();
 
     return ( events ^ HVACQUEEN_IDENTIFY_TIMEOUT_EVT );
-  }
+  }*/
+  
   
   if (events & HVACPTL0_EVENT_TIMEOUT_EVT )
   {
@@ -469,11 +457,12 @@ uint8 hvacHandleZDOAnnounce(zdoIncomingMsg_t * MSGpkt)
     outGoingPTL0Msg.SOF = PTL0_SOF;
     outGoingPTL0Msg.version = PTL0_FRAMEVER;
 
-    // send event through uart immediantly
-    ptl0_sendMsg(outGoingPTL0Msg);
-     
-    // release memory
-    osal_mem_free(ptl0_payloadbuf);
+    // push to event stack, set event
+    if(ptl0_pushEvent(outGoingPTL0Msg) 
+       && osal_set_event(zclHVACQueen_TaskID , HVACPTL0_EVENT_TIMEOUT_EVT))
+      return true;
+    else
+      return false;
   }
   else
   {
@@ -568,25 +557,15 @@ static void HVACQueen_HandleUart (mtOSALSerialData_t *pMsg)
  * @return  none
  */
 static void hvacUART_PTL0_PING( void )
-{
-  PTL0_InitTypeDef uartPtl0Temp;
-  
-
+{ 
   // If PTL0 idel, send ACK
   if(ptl0_queryStat() == PTL0_STA_IDEL)
   {
     // update PTL0 status
     ptl0_updateStat(PTL0_STA_PING_REC);
   
-    // configurate the ACK structure
-    uartPtl0Temp.SOF = PTL0_SOF;
-    uartPtl0Temp.version = PTL0_FRAMEVER;
-    uartPtl0Temp.length = 0;      // ACK frame, no data payload
-    uartPtl0Temp.CMD1 = PTL0_ACK;
-    uartPtl0Temp.CMD2 = PTL0_EMPTYCMD;
-    
-    // send through PTL0 UART
-    ptl0_sendMsg(uartPtl0Temp);
+    // send ACK
+    ptl0_sendACK();
     
     // back to idel
     ptl0_updateStat(PTL0_STA_IDEL);
@@ -658,16 +637,24 @@ static void hvacUART_PTL0_NWK_STATUS_RP( PTL0_InitTypeDef *ptl0_buf )
  */
 static void hvacUART_PTL0_NWK_CMD( PTL0_InitTypeDef *ptl0_buf )
 {
-  // update status, receive network cmd frame
-  ptl0_updateStat(PTL0_STA_NWKCMD_REC);
-  
-  switch(ptl0_buf->CMD2)
+  if(ptl0_queryStat() == PTL0_STA_IDEL)
   {
-    // response according to different command
-    default:
-      break;
+    // update status, receive network cmd frame
+    ptl0_updateStat(PTL0_STA_NWKCMD_REC);
+    
+    switch(ptl0_buf->CMD2)
+    {
+      // response according to different command
+      default:
+      // default procedure, send ACK back
+        // send ACK
+        ptl0_sendACK();
+        // send ACK, communication complete, back to idel
+        ptl0_updateStat(PTL0_STA_IDEL);
+        break;
+    }
+    asm("NOP");
   }
-  asm("NOP");
 }
 
 /*********************************************************************
@@ -681,7 +668,23 @@ static void hvacUART_PTL0_NWK_CMD( PTL0_InitTypeDef *ptl0_buf )
  */
 static void hvacUART_PTL0_LOC_STATUS_RP( PTL0_InitTypeDef *ptl0_buf )
 {
-  asm("NOP");
+  if(ptl0_queryStat() == PTL0_STA_IDEL)
+  {
+    // update status, receive local status report frame
+    ptl0_updateStat(PTL0_STA_LOCSTARP_REC);
+    
+    switch(ptl0_buf->CMD2)
+    {
+      // response according to different command
+      default:
+      // default procedure, send ACK back
+        // send ACK
+        ptl0_sendACK();
+        // send ACK, communication complete, back to idel
+        ptl0_updateStat(PTL0_STA_IDEL);
+        break;
+    }
+  }
 }
 
 /*********************************************************************
@@ -695,215 +698,26 @@ static void hvacUART_PTL0_LOC_STATUS_RP( PTL0_InitTypeDef *ptl0_buf )
  */
 static void hvacUART_PTL0_LOC_CMD( PTL0_InitTypeDef *ptl0_buf )
 {
+  if(ptl0_queryStat() == PTL0_STA_IDEL)
+  {
+  // update status, receive local cmd frame
+  ptl0_updateStat(PTL0_STA_LOCCMD_REC);
+  
+  switch(ptl0_buf->CMD2)
+  {
+    // response according to different command
+    default:
+    // default procedure, send ACK back
+      // send ACK
+      ptl0_sendACK();
+      // send ACK, communication complete, back to idel
+      ptl0_updateStat(PTL0_STA_IDEL);
+      break;
+  }
   asm("NOP");
+  }
 }
 
-/*********************************************************************
- * @fn      zclHVACQueen_HandleKeys
- *
- * @brief   Handles all key events for this device.
- *
- * @param   shift - true if in shift/alt.
- * @param   keys - bit field for key events. Valid entries:
- *                 HAL_KEY_SW_5
- *                 HAL_KEY_SW_4
- *                 HAL_KEY_SW_2
- *                 HAL_KEY_SW_1
- *
- * @return  none
- */
-/*static void zclHVACQueen_HandleKeys( byte shift, byte keys )
-{
-  // toggle remote light
-  if ( keys & HAL_KEY_SW_1 )
-  {
-    giSwScreenMode = SW_MAINMODE;   // remove help screen if there
-
-    // Using this as the "Light Switch"
-#ifdef ZCL_ON_OFF
-    zclGeneral_SendOnOff_CmdToggle( HVACQUEEN_ENDPOINT, &zclHVACQueen_DstAddr, FALSE, 0 );
-#endif
-#ifdef LCD_SUPPORTED
-    HalLcdWriteString( (char *)sCmdSent, HAL_LCD_LINE_2 );
-
-    // clear message on screen after 3 seconds
-    osal_start_timerEx( zclHVACQueen_TaskID, HVACQUEEN_MAIN_SCREEN_EVT, 3000 );
-#endif
-  }
-
-  // invoke EZ-Mode
-  if ( keys & HAL_KEY_SW_2 )
-  {
-    giSwScreenMode = SW_MAINMODE;   // remove help screen if there
-
-#ifdef ZCL_EZMODE
-    {
-      zclEZMode_InvokeData_t ezModeData;
-      static uint16 clusterIDs[] = { ZCL_CLUSTER_ID_GEN_ON_OFF };   // only bind on the on/off cluster
-
-      // Invoke EZ-Mode
-      ezModeData.endpoint = HVACQUEEN_ENDPOINT; // endpoint on which to invoke EZ-Mode
-      if ( (zclHVACQueen_NwkState == DEV_ZB_COORD) ||
-               (zclHVACQueen_NwkState == DEV_ROUTER)   ||
-               (zclHVACQueen_NwkState == DEV_END_DEVICE) )
-      {
-        ezModeData.onNetwork = TRUE;      // node is already on the network
-      }
-      else
-      {
-        ezModeData.onNetwork = FALSE;     // node is not yet on the network
-      }
-      ezModeData.initiator = TRUE;        // OnOffSwitch is an initiator
-      ezModeData.numActiveOutClusters = 1;   // active output cluster
-      ezModeData.pActiveOutClusterIDs = clusterIDs;
-      ezModeData.numActiveInClusters = 0;  // no active input clusters
-      ezModeData.pActiveInClusterIDs = NULL;
-      zcl_InvokeEZMode( &ezModeData );
-
- #ifdef LCD_SUPPORTED
-      HalLcdWriteString( "EZMode", HAL_LCD_LINE_2 );
- #endif
-    }
-
-#else // NOT ZCL_EZMODE
-    // bind to remote light
-    zAddrType_t dstAddr;
-    HalLedSet ( HAL_LED_4, HAL_LED_MODE_OFF );
-
-    // Initiate an End Device Bind Request, this bind request will
-    // only use a cluster list that is important to binding.
-    dstAddr.addrMode = afAddr16Bit;
-    dstAddr.addr.shortAddr = 0;   // Coordinator makes the match
-    ZDP_EndDeviceBindReq( &dstAddr, NLME_GetShortAddr(),
-                           HVACQUEEN_ENDPOINT,
-                           ZCL_HA_PROFILE_ID,
-                           0, NULL,   // No incoming clusters to bind
-                           ZCLHVACQUEEN_BINDINGLIST, bindingOutClusters,
-                           TRUE );
-#endif // ZCL_EZMODE
-  }
-
-  // toggle permit join
-  if ( keys & HAL_KEY_SW_4 )
-  {
-    giSwScreenMode = SW_MAINMODE;   // remove help screen if there
-
-    if ( ( zclHVACQueen_NwkState == DEV_ZB_COORD ) ||
-         ( zclHVACQueen_NwkState == DEV_ROUTER ) )
-    {
-      zAddrType_t tmpAddr;
-
-      tmpAddr.addrMode = Addr16Bit;
-      tmpAddr.addr.shortAddr = NLME_GetShortAddr();
-
-      // toggle permit join
-      gPermitDuration = gPermitDuration ? 0 : 0xff;
-
-      // Trust Center significance is always true
-      ZDP_MgmtPermitJoinReq( &tmpAddr, gPermitDuration, TRUE, FALSE );
-    }
-  }
-
-  if ( shift && ( keys & HAL_KEY_SW_5 ) )
-  {
-    zclHVACQueen_BasicResetCB();
-  }
-  else if ( keys & HAL_KEY_SW_5 )
-  {
-    giSwScreenMode = giSwScreenMode ? SW_MAINMODE : SW_HELPMODE;
-#ifdef LCD_SUPPORTED
-    HalLcdWriteString( (char *)sClearLine, HAL_LCD_LINE_2 );
-#endif
-  }
-
-  // update the display
-  zclHVACQueen_LcdDisplayUpdate();
-}
-*/
-
-/*********************************************************************
- * @fn      zclHVACQueen_LcdDisplayUpdate
- *
- * @brief   Called to update the LCD display.
- *
- * @param   none
- *
- * @return  none
- */
-/*void zclHVACQueen_LcdDisplayUpdate(void)
-{
-  if ( giSwScreenMode == SW_HELPMODE )
-  {
-    zclHVACQueen_LcdDisplayHelpMode();
-  }
-  else
-  {
-    zclHVACQueen_LcdDisplayMainMode();
-  }
-}*/
-
-/*********************************************************************
- * @fn      zclHVACQueen_LcdDisplayMainMode
- *
- * @brief   Called to display the main screen on the LCD.
- *
- * @param   none
- *
- * @return  none
- */
-/*void zclHVACQueen_LcdDisplayMainMode(void)
-{
-  if ( zclHVACQueen_NwkState == DEV_ZB_COORD )
-  {
-    zclHA_LcdStatusLine1(0);
-  }
-  else if ( zclHVACQueen_NwkState == DEV_ROUTER )
-  {
-    zclHA_LcdStatusLine1(1);
-  }
-  else if ( zclHVACQueen_NwkState == DEV_END_DEVICE )
-  {
-    zclHA_LcdStatusLine1(2);
-  }
-
-  if ( ( zclHVACQueen_NwkState == DEV_ZB_COORD ) ||
-       ( zclHVACQueen_NwkState == DEV_ROUTER ) )
-  {
-    // display help key with permit join status
-    if ( gPermitDuration )
-    {
-      HalLcdWriteString("SW5: Help      *", HAL_LCD_LINE_3);
-    }
-    else
-    {
-      HalLcdWriteString("SW5: Help       ", HAL_LCD_LINE_3);
-    }
-  }
-  else
-  {
-    // display help key
-    HalLcdWriteString((char *)sSwHelp, HAL_LCD_LINE_3);
-  }
-#endif
-}*/
-
-/*********************************************************************
- * @fn      zclHVACQueen_LcdDisplayHelpMode
- *
- * @brief   Called to display the SW options on the LCD.
- *
- * @param   none
- *
- * @return  none
- */
-/*void zclHVACQueen_LcdDisplayHelpMode(void)
-{
-#ifdef LCD_SUPPORTED
-  HalLcdWriteString( (char *)sSwLight, HAL_LCD_LINE_1 );
-  HalLcdWriteString( (char *)sSwEZMode, HAL_LCD_LINE_2 );
-  HalLcdWriteString( (char *)sSwHelp, HAL_LCD_LINE_3 );
-#endif
-}*/
 
 /*********************************************************************
  * @fn      zclHVACQueen_ProcessIdentifyTimeChange

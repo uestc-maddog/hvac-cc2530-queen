@@ -306,7 +306,7 @@
           <state>ZTOOL_P1</state>
           <state>ZIGBEEPRO</state>
           <state>SECURE=1</state>
-          <state>TC_LINKKEY_JOIN</state>
+          <state>xTC_LINKKEY_JOIN</state>
           <state>NV_INIT</state>
           <state>xNV_RESTORE</state>
           <state>xHOLD_AUTO_START</state>
@@ -401,7 +401,7 @@
         <option>
           <name>CCAllowList</name>
           <version>1</version>
-          <state>00000</state>
+          <state>11111</state>
         </option>
         <option>
           <name>CCObjUseModuleName</name>
@@ -535,7 +535,7 @@
         </option>
         <option>
           <name>CCOptLevel</name>
-          <state>0</state>
+          <state>3</state>
         </option>
         <option>
           <name>CCOptStrategy</name>
@@ -544,7 +544,7 @@
         </option>
         <option>
           <name>CCOptLevelSlave</name>
-          <state>0</state>
+          <state>3</state>
         </option>
         <option>
           <name>CompilerMisraRules04</name>
